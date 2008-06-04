@@ -35,16 +35,16 @@ def system_summary():
             import os_debian
             debdist = os_debian.get_distro_information()
             distro = debdist['ID']
-            summary += distro+" "+caps(debdist['CODENAME'])+"\n"
+            summary += distro+" "+caps(debdist['CODENAME'])+"\n\n"
         else:
             packaging = "dunno"
             distro = caps(dist[0])
             summary += distro+" "+caps(dist[1])
-        summary += "GNU/Linux is made up most of freedomware. However, many systems have several pieces of propreitary software installed (find out why this is bad).\n"
+        summary += "GNU/Linux is made up most of freedomware. However, many systems have several pieces of propreitary software installed (find out why this is bad).\n\n"
         if (distro == "Debian"):
-            summary += "Debian has a good commitment to freedomware, but not quite as far as gnewsense.\n"
+            summary += "Debian has a good commitment to freedomware, but not quite as far as gnewsense.\n\n"
         elif (distro == "Ubuntu"):
-            summary += "Ubuntu has a good commitment to freedom, but not as much as others such as fedora, debian and gnewsense.\n"
+            summary += "Ubuntu has a good commitment to freedom, but not as much as others such as fedora, debian and gnewsense.\n\n"
         if (packaging == "dunno"):
             summary += "Unfortunately the scan functionality does not work for this GNU/Linux distriubtion yet. Please contact us so that we can add it."
         else:
@@ -63,10 +63,10 @@ def system_summary():
             else: version = "XP"
         elif (winversion[0] == 6): version = "Vista"
         else: version = winversion
-        summary += system+" "+version
-        summary += "Windows is a propreaitary Operating System. However various pieces of freedomware can be installed.\n"
-        summary += "Click scan to find common pieces of free software, then our wizard will help you start using more."
-        summary += "We can also help you install a free software Operating System, such as Ubuntu"
+        summary += system+" "+version+"\n\n"
+        summary += "Windows is a propreaitary Operating System. However various pieces of freedomware can be installed.\n\n"
+        summary += "Click scan to find common pieces of free software, then our wizard will help you start using more.\n\n"
+        summary += "We can also help you install a free software Operating System, such as Ubuntu.\n\n"
     return summary
 
 def parse_vrms(pkglist):
@@ -103,13 +103,15 @@ class MainWindow:
         self.window.connect("destroy", self.destroy)
     
         self.window.set_border_width(10)
+        self.window.set_default_size(400,-1)
     
         self.box1 = gtk.VBox()
 
         self.system = system_summary()
 
         self.header = gtk.Label(self.system)
-        self.box1.pack_start(self.header, True, True, 10)
+        self.header.set_line_wrap(True)
+        self.box1.pack_start(self.header, True, True, 0)
         self.header.show()
 
         self.liststore = gtk.ListStore(str,str,str)
@@ -121,6 +123,7 @@ class MainWindow:
         for i in range (0,3):
             self.columns.append(gtk.TreeViewColumn(self.titles[i], self.textrenderer, text=i))
             self.tree.append_column(self.columns[i])
+        self.tree.set_size_request(-1, 200)
         self.tree.show()
         self.box1.pack_start(self.tree, True, True, 10)
 

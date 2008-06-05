@@ -10,6 +10,8 @@ import gtk
 
 import pango
 
+from optparse import OptionParser
+
 artwork = [ "human-icon-theme", "tangerine-icon-theme", "tango-icon-theme" ]
 fonts = [ "gsfonts-other", "sun-java5-fonts", "sun-java6-fonts", "t1-xfree86-nonfree", "ttf-kochi-gothic-naga10", "ttf-kochi-mincho-naga10", "ttf-larabie-deco", "ttf-larabie-straight", "ttf-larabie-uncommon", "ttf-mikachan", "ttf-xfree86-nonfree", "ttf-xfree86-nonfree-syriac", "xfonts-naga10",
 "msttcorefonts" ]
@@ -169,10 +171,17 @@ class MainWindow:
     def main(self):
         gtk.main()
 
-if __name__ == "__main__":
+graphics = True
+
+parser = OptionParser
+parser = OptionParser()
+parser.add_option("-c", action="store_false", dest="graphics", help="")
+parser.add_option("-g", action="store_true", dest="graphics", help="")
+(options, args) = parser.parse_args()
+graphics = options.graphics
+
+if (graphics and __name__ == "__main__"):
     main = MainWindow()
     main.main()
-#print identify_system()
-#packages = scan_system()
-#for i in packages:
-#    print i
+else:
+    print system_summary()

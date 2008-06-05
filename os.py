@@ -9,7 +9,10 @@ pygtk.require('2.0')
 import gtk
 
 artwork = [ "human-icon-theme", "tangerine-icon-theme", "tango-icon-theme" ]
-
+fonts = [ "gsfonts-other", "sun-java5-fonts", "sun-java6-fonts", "t1-xfree86-nonfree", "ttf-kochi-gothic-naga10", "ttf-kochi-mincho-naga10", "ttf-larabie-deco", "ttf-larabie-straight", "ttf-larabie-uncommon", "ttf-mikachan", "ttf-xfree86-nonfree", "ttf-xfree86-nonfree-syriac", "xfonts-naga10",
+"msttcorefonts" ]
+fonts_multi = [ "mplayer-fonts", "ttf-liberation" ]
+extra = [ "msttcorefonts", "flashplugin-nonfree" ]
 def caps(stringy):
     return stringy[0:1].upper() + stringy[1:].lower()
 
@@ -69,12 +72,22 @@ def system_summary():
         summary += "We can also help you install a free software Operating System, such as Ubuntu.\n\n"
     return summary
 
-def parse_vrms(pkglist):
+def parse_list(pkglist, badpkg):
     pkgs = []
     while (pkglist != ""):
-        pkgarr = pkglist.partition("\n")
+        pkgarr = pkglist.partition('\n')
+        pkgname = pkgarr[0].rstrip()
         #print commands.getoutput("aptitude show "+pkgarr[0])
-        if (pkgarr[0] != ""): pkgs.append(pkgarr[0])
+        if (pkgname != ""):
+            if (pkgname in artwork): cat = "Artwork"
+            elif (pkgname in fonts): cat = "Font"
+            else: cat = ""
+            if (badpkg==None):
+                pkgs.append([pkgname, cat, "Vrms"])
+            elif (pkgname in badpkg):
+                pkgs.append([pkgname, cat, "Extra"])
+            else:
+                print pkgname+" "+str(badpkg)
         pkglist = pkgarr[2]
     return pkgs
 
@@ -82,7 +95,9 @@ def scan_system():
     global system
     if (system == "Linux"):
         import commands
-        return parse_vrms(commands.getoutput("vrms -s"))
+        pkgs = parse_list(commands.getoutput("vrms -s"), None)
+        morepkgs = parse_list(commands.getoutput("aptitude search ~smultiverse~i -F \"%p\""), extra)
+        return pkgs + morepkgs
 
 class MainWindow:
     def delete_event(self, widget, event, data=None):
@@ -92,9 +107,10 @@ class MainWindow:
         gtk.main_quit()
 
     def scan(self, widget):
+        self.liststore.clear()
         packages = scan_system()
         for i in packages:
-            self.liststore.append([i,"",""])
+            self.liststore.append(i)
 
     def __init__(self):
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
@@ -119,13 +135,17 @@ class MainWindow:
         self.textrenderer = gtk.CellRendererText()
         self.columns = []
         self.cells = []
-        self.titles = [ "Package name", "Category", "Other" ]
+        self.titles = [ "Package name", "Category", "Found using" ]
         for i in range (0,3):
             self.columns.append(gtk.TreeViewColumn(self.titles[i], self.textrenderer, text=i))
             self.tree.append_column(self.columns[i])
         self.tree.set_size_request(-1, 200)
         self.tree.show()
-        self.box1.pack_start(self.tree, True, True, 10)
+        self.scroll_tree = gtk.ScrolledWindow()
+        self.scroll_tree.add(self.tree)
+        self.scroll_tree.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        self.box1.pack_start(self.scroll_tree, True, True, 10)
+        self.scroll_tree.show()
 
         self.box2 = gtk.HBox()
         self.button_scan = gtk.Button("Scan")

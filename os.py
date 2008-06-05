@@ -8,6 +8,8 @@ import pygtk
 pygtk.require('2.0')
 import gtk
 
+import pango
+
 artwork = [ "human-icon-theme", "tangerine-icon-theme", "tango-icon-theme" ]
 fonts = [ "gsfonts-other", "sun-java5-fonts", "sun-java6-fonts", "t1-xfree86-nonfree", "ttf-kochi-gothic-naga10", "ttf-kochi-mincho-naga10", "ttf-larabie-deco", "ttf-larabie-straight", "ttf-larabie-uncommon", "ttf-mikachan", "ttf-xfree86-nonfree", "ttf-xfree86-nonfree-syriac", "xfonts-naga10",
 "msttcorefonts" ]
@@ -55,8 +57,8 @@ def system_summary():
     elif (os.name == "posix"):
         summary += "Unix based, but not GNU/Linux.\nUnfortunately we do not support this operating system yet. If you would like to help us, please tell us what system you are using."
     elif (system == "Windows"):
-        inversion = sys.getwindowsversion()
-        if (winversion[0] < 4): version = winversion
+        winversion = sys.getwindowsversion()
+        if (winversion[0] < 4): version = winversion[0]
         elif (winversion[0] == 4):
             if (winversion[1] == 0): version = "95"
             elif (winversion[1] == 10): version = "98"
@@ -65,9 +67,9 @@ def system_summary():
             if (winversion[1] == 0): version = "2000"
             else: version = "XP"
         elif (winversion[0] == 6): version = "Vista"
-        else: version = winversion
+        else: version = winversion[0]
         summary += system+" "+version+"\n\n"
-        summary += "Windows is a propreaitary Operating System. However various pieces of freedomware can be installed.\n\n"
+        summary += "Windows is a proprietary Operating System. However various pieces of freedomware can be installed.\n\n"
         summary += "Click scan to find common pieces of free software, then our wizard will help you start using more.\n\n"
         summary += "We can also help you install a free software Operating System, such as Ubuntu.\n\n"
     return summary
@@ -86,8 +88,6 @@ def parse_list(pkglist, badpkg):
                 pkgs.append([pkgname, cat, "Vrms"])
             elif (pkgname in badpkg):
                 pkgs.append([pkgname, cat, "Extra"])
-            else:
-                print pkgname+" "+str(badpkg)
         pkglist = pkgarr[2]
     return pkgs
 
@@ -95,9 +95,11 @@ def scan_system():
     global system
     if (system == "Linux"):
         import commands
-        pkgs = parse_list(commands.getoutput("vrms -s"), None)
-        morepkgs = parse_list(commands.getoutput("aptitude search ~smultiverse~i -F \"%p\""), extra)
-        return pkgs + morepkgs
+        global packaging
+        if (packaging == "apt"):
+            pkgs = parse_list(commands.getoutput("vrms -s"), None)
+            morepkgs = parse_list(commands.getoutput("aptitude search ~smultiverse~i -F \"%p\""), extra)
+            return pkgs + morepkgs
 
 class MainWindow:
     def delete_event(self, widget, event, data=None):

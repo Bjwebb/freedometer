@@ -175,10 +175,10 @@ graphics = True
 
 parser = OptionParser
 parser = OptionParser()
-parser.add_option("-c", action="store_false", dest="graphics", help="")
-parser.add_option("-g", action="store_true", dest="graphics", help="")
+parser.add_option("-c", action="store_false", dest="graphics", help="Command line mode")
+parser.add_option("-g", action="store_true", dest="graphics", help="Graphical (GTK) mode")
 (options, args) = parser.parse_args()
-graphics = options.graphics
+if (options.graphics != None): graphics = options.graphics
 
 if (graphics and __name__ == "__main__"):
     main = MainWindow()

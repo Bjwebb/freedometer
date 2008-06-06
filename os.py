@@ -4,12 +4,6 @@ import os
 import platform
 import sys
 
-import pygtk
-pygtk.require('2.0')
-import gtk
-
-import pango
-
 from optparse import OptionParser
 
 artwork = [ "human-icon-theme", "tangerine-icon-theme", "tango-icon-theme" ]
@@ -180,8 +174,13 @@ parser.add_option("-g", action="store_true", dest="graphics", help="Graphical (G
 (options, args) = parser.parse_args()
 if (options.graphics != None): graphics = options.graphics
 
-if (graphics and __name__ == "__main__"):
-    main = MainWindow()
-    main.main()
+if (graphics):
+    import pygtk
+    pygtk.require('2.0')
+    import gtk
+    import pango
+    if (__name__ == "__main__"):
+        main = MainWindow()
+        main.main()
 else:
     print system_summary()

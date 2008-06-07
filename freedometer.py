@@ -186,3 +186,5 @@ if (graphics):
         main.main()
 else:
     print system_summary()
+    print "\nSorry, the command line interface is not let implemented beyond the above text; help would be appreciated."
+

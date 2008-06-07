@@ -1,0 +1,389 @@
+#!/usr/bin/perl
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+
+use strict;
+use warnings;
+
+use Getopt::Long;
+
+# Declaration of important/main variables.
+my $quiet = 0;
+my $sparse = 0;
+my $help = 0;
+my $explain = 1;
+my $debug = 0;
+my $reasondir = '/usr/share/vrms/reasons/';
+my %reason = ();
+
+#
+# Auxiliary functions section (FIXME: put them in a file by themselves).
+#
+
+# sub usage:
+# Input: nothing.
+# Output: Messages to stdout telling the usage of the program.
+sub usage() {
+    print <<EOF;
+Usage: vrms [OPTIONS] ...
+
+--quiet, -q		Do nothing if there are no non-free packages installed.
+--explain, -e		Give a brief explanation of why a package is non-free,
+			  if available.
+--sparse, -s		Just list non-free packages, nothing else.
+--reason-dir=DIR	Use DIR as the reason directory.
+--help, -h		Display this help.
+--debug, -d		Generate debugging information.
+
+All options can be prefixed with "no" (eg: --noexplain) to turn them off.
+EOF
+}
+
+# sub parse_reason_file:
+# Input: the name of a reason file and the global hash %reason
+# Output: the hash %reason filled with reasons from the input file
+# (FIXME: %reason shouldn't be global)
+sub parse_reason_file {
+    my $file = shift;
+    print "Parsing reason file $file\n" if $debug >= 1;
+    open(REASON, "<", $file) or
+	die "Can't open FILE [$file]: $!\n";
+    
+    while (my $line = <REASON>) {
+	chomp $line;
+	# Grab a line of the form 'package: reason', skip if we don't match
+	my ($pkg, $reason) = ($line =~ /^(\S+):\s+(.*)\s*$/) or next;
+	print "'$pkg' because '$reason'\n" if ($debug >= 1);
+	
+	# If this is _our_ master file, then prefer anything
+	# else (so that package maintainers can override)
+	next if exists $reason{$pkg} and $file =~ /\/vrms$/;
+	
+	$reason{$pkg} = $reason;
+    }
+    
+    close REASON or
+	die "Can't close FILE [$file]: $!\n";
+}
+
+#
+# Main program starts here.
+#
+GetOptions('q|quiet' => \$quiet,
+	   's|sparse' => \$sparse,
+	   'e|explain!' => \$explain,
+	   'reason-dir=s' => \$reasondir,
+	   'd|debug+' => \$debug,
+	   'h|help' => \$help);
+
+if ($help) {
+    usage();
+    exit 0;
+}
+
+opendir(REASONDIR, $reasondir) or
+    die "Can't open DIR [$reasondir]: $!\n";
+# Parse all the reason files in $reasondir except those beginning with
+#  a . or ending with a ~
+parse_reason_file("$reasondir/$_")
+    foreach (grep {!/~$/ && !/^\./} readdir(REASONDIR));
+closedir REASONDIR or
+    die "Can't close DIR [$reasondir]: $!\n";
+
+my $statusfile = '/var/lib/dpkg/status';
+my $is_nonfree = 0;		###  preset none found, yet
+my %nonfree = ();
+my $is_other_nonfree = 0;	###  preset none found, yet
+my %other_nonfree = ();
+my $is_contrib = 0;		###  preset none found, yet
+my %contrib = ();
+my $is_other_contrib = 0;	###  preset none found, yet
+my %other_contrib = ();
+my %pkg_status = ();
+my $pkgcnt = 0;
+my $clumpcnt = 0;
+my $dontcarelines = 5;		### no. of lines a non-installed entry may have in the statusfile
+
+
+my $sysname = "";
+chop($sysname = `uname -n`);
+
+open(PKG_SOURCE, "< $statusfile") or 
+    die "Can't open FILE [$statusfile]: $!\n";
+
+$/ = "";  ###  snarf a paragraph at a time
+while(<PKG_SOURCE>) {
+    my $clump = $_;
+    $clumpcnt++;
+    my (@pkglines) = split(/\n/, $clump);
+    ###  iff more than $dontcarelines lines, package is installed, so process it
+    ###   (speed-up by skipping don't-care entries)
+    if (@pkglines > $dontcarelines) {
+	my $pkg = "";		###  name of this package
+	my $pkgstatus = "";	###  status
+	my $plan = "";		###  install plan (hold, deinstall, purge, install, etc.)
+	my $state = "";		###  state (ok or ???)
+	my $status = "";	###  status (installed, not-installed, etc.)
+	my $section = "";	###  section this is where non-free is marked
+	my $shortdescr = "";	###  one-liner description of pkg
+	my $linenbr = 0;	###  current line number of this pkackag's info
+	my $label = "";		###  junk field (not used, except to catch split values)
+	my $has_pkg = 0;	###  reset the markers
+	my $has_status = 0;
+	my $has_section = 0;
+	foreach (@pkglines) {
+	    chomp;
+	    $linenbr++;
+	    if (/^Package:/) {
+		($label, $pkg) =  split(/:\s+/,$_,2);
+		$pkgcnt++;
+		printf "pkg(%4.4d) pkg=[%s]\n",$pkgcnt,$pkg if $debug >= 1;
+		$has_pkg = 1;	###  we have necessary section
+		next;
+	    }
+	    if (/^Status:/) {
+		my $label = "";
+		($label,  $pkgstatus) = split(/:\s+/,$_,2);
+		print "\tpkgstatus=[$pkgstatus]\n" if $debug >= 1;
+		$pkg_status{$pkg} = $pkgstatus;
+		($plan, $state, $status) = split(/\s+/,$pkgstatus);
+		print "\t\tplan=[$plan]\n" if $debug >= 1;
+		print "\t\tstate=[$state]\n" if $debug >= 1;
+		print "\t\tstatus=[$status]\n" if $debug >= 1;
+		$has_status = 1;	###  we have necessary section
+		next;
+	    }
+	    if (/^Section:/) {
+		my $label = "";
+		($label, $section) = split(/:\s+/,$_,2);
+		print "\tsection=[$section]\n" if $debug >= 1;
+		$has_section = 1;	###  we have necessary section
+		if ($section =~ /contrib|non-free|restricted|multiverse/) {
+		    ###  read thru rest of array to find descr instead of waiting for it
+		    my $found_descr =0;
+		    while (! $found_descr) {
+			if ($linenbr > $#pkglines) {
+			    ###  iff badly formed entry ensure blank description
+			    print "\tEEEE shortdescr=[$shortdescr]\n" if $debug >= 1;
+			    last;
+			}
+			my $dline = $pkglines[$linenbr++];
+			if($dline =~ /^Description:/) {
+			    ($label, $shortdescr) = split(/:\s+/,$dline,2);
+			    print "\tshortdescr=[$shortdescr]\n" if $debug >= 1;
+			    $found_descr = 1;
+			}
+		    }
+		    if ($section =~ /contrib/) {
+			if (lc $status eq 'installed') {
+			    $is_contrib = 1;
+			    $contrib{$pkg} = $shortdescr;
+			} else {
+			    $is_other_contrib = 1;
+			    $other_contrib{$pkg} = $shortdescr;
+			}
+		    } else {
+			if (lc $status eq 'installed') {
+			    $is_nonfree = 1;
+			    $nonfree{$pkg} = $shortdescr;
+			} else {
+			    $is_other_nonfree = 1;
+			    $other_nonfree{$pkg} = $shortdescr;
+			}
+		    }
+		}
+		last;	### this is last desriptor of package we care about so end loop
+	    } else {
+		###  un-processed lines from package info
+		if($debug >= 1) {
+		    print "\t\t--- $_\n";
+		}
+	    }
+	}
+	if (!$has_status or !$has_pkg) {
+	    print STDERR "vrms: ERROR- Badly formed dpkg-status entry #$clumpcnt!\n";
+	    print STDERR "             pkg=[$pkg], pkgstatus=[$pkgstatus], section=[$section] \n";
+	}
+    } else {
+	###  Entries which are 2 or 4 lines are not-installed 
+	if ($debug >= 1) {
+	    ###  emit debug so can veryify parsing
+	    my $lineCt = @pkglines;
+	    print " SKIPPED <5: $lineCt lines\n";
+	    foreach (@pkglines) {
+		my $spacer = ($_ =~ /Package:/) ? "" : "   ";
+		print " SKIPPED <5:$spacer [$_]\n";
+	    }
+	}
+    }
+}
+close (PKG_SOURCE) or
+    die "Can't close FILE [$statusfile]: $!\n";
+
+#print "$pkgcnt packages installed\n";
+
+my $nfcnt = 0;
+my $pkgname = "";
+
+my $nonfreecnt = (keys %nonfree);
+
+if($is_nonfree) {
+    if($sparse) {
+	foreach $pkgname (sort keys (%nonfree)) {
+	    $nfcnt++;
+	    print "$pkgname\n";
+	}
+    } else {
+	$~ = "nonfree_head";
+	write ;
+	$~ = "nfp";
+	foreach $pkgname (sort keys(%nonfree) ) {
+	    $nfcnt++;
+	    write ;
+	    print "  Reason: $reason{$pkgname}\n"
+		if (exists $reason{$pkgname} and $explain);
+	}
+    }
+}
+
+my $pnfcnt = 0;
+my $other_nonfreecnt = (keys %other_nonfree);
+if($is_other_nonfree) {
+    if($sparse) {
+	foreach $pkgname (sort keys(%other_nonfree)) {
+	    $pnfcnt++;
+	    print "$pkgname\n";
+	}
+    } else {
+	$~ = "nonfree_partialhead";
+	write;
+	$~ = "pnf";
+	foreach $pkgname (sort keys(%other_nonfree)) {
+	    $pnfcnt++;
+	    write;
+	    print "  Reason: $reason{$pkgname}\n"
+		if (exists $reason{$pkgname} and $explain);
+	}
+    }
+}
+
+my $cbcnt = 0;
+
+my $contribcnt = (keys %contrib);
+
+if($is_contrib) {
+    print "\n";
+    if($sparse) {
+	foreach $pkgname (sort keys (%contrib)) {
+	    $cbcnt++;
+	    print "$pkgname\n";
+	}
+    } else {
+	$~ = "contrib_head";
+	write ;
+	$~ = "cbp";
+	foreach $pkgname (sort keys(%contrib) ) {
+	    $cbcnt++;
+	    write ;
+	    print "  Reason: $reason{$pkgname}\n"
+		if (exists $reason{$pkgname} and $explain);
+	}
+    }
+}
+
+my $pcbcnt = 0;
+my $other_contribcnt = (keys %other_contrib);
+if($is_other_contrib) {
+    if($sparse) {
+	foreach $pkgname (sort keys(%other_contrib)) {
+	    $pcbcnt++;
+	    print "$pkgname\n";
+	}
+    } else {
+	$~ = "contrib_partialhead";
+	write;
+	$~ = "pcb";
+	foreach $pkgname (sort keys(%other_contrib)) {
+	    $pcbcnt++;
+	    write;
+	    print "  Reason: $reason{$pkgname}\n"
+		if (exists $reason{$pkgname} and $explain);
+	}
+    }
+}
+
+if (!$quiet and !$sparse) {
+    printf "\n";
+    if ($nfcnt != 0 or $pnfcnt != 0) {
+	my $total_nonfree = $nonfreecnt + $other_nonfreecnt;
+	my $total_installed = $pkgcnt;
+	my $percentage = $total_nonfree * 100 / $total_installed;
+	printf "  %d non-free packages, %2.1f%% of %d installed packages.\n", 
+	$total_nonfree, $percentage, $total_installed;
+    }
+    if ($cbcnt != 0 or $pcbcnt != 0) {
+	my $total_contrib = $contribcnt + $other_contribcnt;
+	my $total_installed = $pkgcnt;
+	my $percentage = $total_contrib * 100 / $total_installed;
+	printf "  %d contrib packages, %2.1f%% of %d installed packages.\n", 
+	$total_contrib, $percentage, $total_installed;
+    }
+}
+if (!$quiet and $nfcnt == 0 and $pnfcnt == 0 and $cbcnt == 0 and $pcbcnt == 0) {
+    print "No non-free or contrib packages installed on $sysname!  rms would be proud.\n"
+}
+
+
+format nonfree_head =
+@||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+"Non-free packages installed on $sysname"
+
+.
+format nonfree_partialhead =
+
+@||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+"Non-free packages with status other than installed on $sysname"
+
+.
+
+format contrib_head =
+@||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+"Contrib packages installed on $sysname"
+
+.
+format contrib_partialhead =
+
+@||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+"Contrib packages with status other than installed on $sysname"
+
+.
+
+format nfp =
+@<<<<<<<<<<<<<<<<<<<<<<<< @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+$pkgname, $nonfree{$pkgname}
+.
+
+format pnf =
+@<<<<<<<<<<<<<<<<<<<<<<<< @<@<<@< @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+$pkgname, '(', $pkg_status{$pkgname},')', $other_nonfree{$pkgname}
+.
+
+format cbp =
+@<<<<<<<<<<<<<<<<<<<<<<<< @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+$pkgname, $contrib{$pkgname}
+.
+
+format pcb =
+@<<<<<<<<<<<<<<<<<<<<<<<< @<@<<@< @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+$pkgname, '(', $pkg_status{$pkgname},')', $other_contrib{$pkgname}
+.
+

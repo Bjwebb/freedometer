@@ -10,7 +10,7 @@ artwork = [ "human-icon-theme", "tangerine-icon-theme", "tango-icon-theme" ]
 fonts = [ "gsfonts-other", "sun-java5-fonts", "sun-java6-fonts", "t1-xfree86-nonfree", "ttf-kochi-gothic-naga10", "ttf-kochi-mincho-naga10", "ttf-larabie-deco", "ttf-larabie-straight", "ttf-larabie-uncommon", "ttf-mikachan", "ttf-xfree86-nonfree", "ttf-xfree86-nonfree-syriac", "xfonts-naga10",
 "msttcorefonts" ]
 fonts_multi = [ "mplayer-fonts", "ttf-liberation" ]
-extra = [ "msttcorefonts", "flashplugin-nonfree" ]
+
 def caps(stringy):
     return stringy[0:1].upper() + stringy[1:].lower()
 
@@ -33,8 +33,8 @@ def system_summary():
         dist = platform.dist()
         if (dist[0] == "debian"):
             packaging = "apt"
-            import os_debian
-            debdist = os_debian.get_distro_information()
+            import debian_lsb
+            debdist = debian_lsb.get_distro_information()
             distro = debdist['ID']
             summary += distro+" "+caps(debdist['CODENAME'])+"\n\n"
         else:
@@ -70,8 +70,9 @@ def system_summary():
         summary += "We can also help you install a free software Operating System, such as Ubuntu.\n\n"
     return summary
 
-def parse_list(pkglist, badpkg):
+def parse_list(pkglist):
     pkgs = []
+    spacecount = 0
     while (pkglist != ""):
         pkgarr = pkglist.partition('\n')
         pkgname = pkgarr[0].rstrip()
@@ -80,10 +81,12 @@ def parse_list(pkglist, badpkg):
             if (pkgname in artwork): cat = "Artwork"
             elif (pkgname in fonts): cat = "Font"
             else: cat = ""
-            if (badpkg==None):
-                pkgs.append([pkgname, cat, "Vrms"])
-            elif (pkgname in badpkg):
-                pkgs.append([pkgname, cat, "Extra"])
+            if (spacecount == 0):
+                pkgs.append([pkgname, cat, "Non-free"])
+            else:
+                pkgs.append([pkgname, cat, "Contrib"])
+        else:
+            spacecount += 1
         pkglist = pkgarr[2]
     return pkgs
 
@@ -93,9 +96,8 @@ def scan_system():
         import commands
         global packaging
         if (packaging == "apt"):
-            pkgs = parse_list(commands.getoutput("vrms -s"), None)
-            morepkgs = parse_list(commands.getoutput("aptitude search ~smultiverse~i -F \"%p\""), extra)
-            return pkgs + morepkgs
+            pkgs = parse_list(commands.getoutput("./vrms -s"))
+            return pkgs
 
 class MainWindow:
     def delete_event(self, widget, event, data=None):
@@ -133,7 +135,7 @@ class MainWindow:
         self.textrenderer = gtk.CellRendererText()
         self.columns = []
         self.cells = []
-        self.titles = [ "Package name", "Category", "Found using" ]
+        self.titles = [ "Package name", "Category", "Section" ]
         for i in range (0,3):
             self.columns.append(gtk.TreeViewColumn(self.titles[i], self.textrenderer, text=i))
             self.tree.append_column(self.columns[i])

@@ -6,7 +6,8 @@ import sys
 
 from optparse import OptionParser
 
-artwork = [ "human-icon-theme", "tangerine-icon-theme", "tango-icon-theme" ]
+cc_artwork = [ "human-icon-theme", "tangerine-icon-theme", "tango-icon-theme" ]
+artwork = []
 fonts = [ "gsfonts-other", "sun-java5-fonts", "sun-java6-fonts", "t1-xfree86-nonfree", "ttf-kochi-gothic-naga10", "ttf-kochi-mincho-naga10", "ttf-larabie-deco", "ttf-larabie-straight", "ttf-larabie-uncommon", "ttf-mikachan", "ttf-xfree86-nonfree", "ttf-xfree86-nonfree-syriac", "xfonts-naga10",
 "msttcorefonts" ]
 fonts_multi = [ "mplayer-fonts", "ttf-liberation" ]
@@ -45,7 +46,9 @@ def system_summary():
         if (distro == "Debian"):
             summary += "Debian has a good commitment to freedomware, but not quite as far as gnewsense.\n\n"
         elif (distro == "Ubuntu"):
-            summary += "Ubuntu has a good commitment to freedom, but not as much as others such as fedora, debian and gnewsense.\n\n"
+            summary += "Ubuntu has a good commitment to freedomware, but not as much as others such as fedora, debian and gnewsense.\n\n"
+        elif (distro == "gNewSense"):
+            summary += "gNewSense contains only freedomware, but it is possible that propreitary software may have been installed on it.\n\n"
         if (packaging == "dunno"):
             summary += "Unfortunately the scan functionality does not work for this GNU/Linux distriubtion yet. Please contact us so that we can add it."
         else:
@@ -70,6 +73,14 @@ def system_summary():
         summary += "We can also help you install a free software Operating System, such as Ubuntu.\n\n"
     return summary
 
+def free_exception(package):
+    exception = False
+    for i in cc_artwork:
+        if (i==package):
+            exception = True
+            break
+    return exception
+
 def parse_list(pkglist):
     pkgs = []
     spacecount = 0
@@ -77,7 +88,7 @@ def parse_list(pkglist):
         pkgarr = pkglist.partition('\n')
         pkgname = pkgarr[0].rstrip()
         #print commands.getoutput("aptitude show "+pkgarr[0])
-        if (pkgname != ""):
+        if (pkgname != "" and free_exception(pkgname) != True):
             if (pkgname in artwork): cat = "Artwork"
             elif (pkgname in fonts): cat = "Font"
             else: cat = ""
@@ -111,6 +122,14 @@ class MainWindow:
         packages = scan_system()
         for i in packages:
             self.liststore.append(i)
+        if (len(packages) == 0):
+            dialog = gtk.Dialog("My dialog", None, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_DELETE_EVENT))
+            label = gtk.Label("You appear to have no non-free packages on your system. However, you may have added non-free software yourself, not using the package manager.")
+            dialog.vbox.pack_start(label,True,True,10)
+            label.show()
+            dialog.run()
+            dialog.destroy()
+
 
     def __init__(self):
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)

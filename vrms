@@ -22,7 +22,7 @@ my $sparse = 0;
 my $help = 0;
 my $explain = 1;
 my $debug = 0;
-my $reasondir = '/usr/share/vrms/reasons/';
+my $reasondir = 'reasons/';
 my %reason = ();
 
 #

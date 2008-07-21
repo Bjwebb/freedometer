@@ -52,7 +52,7 @@ def system_summary():
         if (packaging == "dunno"):
             summary += "Unfortunately the scan functionality does not work for this GNU/Linux distriubtion yet. Please contact us so that we can add it."
         else:
-            summary += "Click the scan button below to scan for propreitary software that is installed on your system."
+            if (graphics): summary += "Click the scan button below to scan for propreitary software that is installed on your system."
     elif (os.name == "posix"):
         summary += "Unix based, but not GNU/Linux.\nUnfortunately we do not support this operating system yet. If you would like to help us, please tell us what system you are using."
     elif (system == "Windows"):
@@ -69,7 +69,7 @@ def system_summary():
         else: version = winversion[0]
         summary += system+" "+version+"\n\n"
         summary += "Windows is a proprietary Operating System. However various pieces of freedomware can be installed.\n\n"
-        summary += "Click scan to find common pieces of free software, then our wizard will help you start using more.\n\n"
+        if (graphics): summary += "Click scan to find common pieces of free software, then our wizard will help you start using more.\n\n"
         summary += "We can also help you install a free software Operating System, such as Ubuntu.\n\n"
     return summary
 
@@ -205,5 +205,6 @@ if (graphics):
         main.main()
 else:
     print system_summary()
+    print scan_system()
     print "\nSorry, the command line interface is not let implemented beyond the above text; help would be appreciated."
 

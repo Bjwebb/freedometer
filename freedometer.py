@@ -12,6 +12,7 @@ artwork = []
 fonts = [ "gsfonts-other", "sun-java5-fonts", "sun-java6-fonts", "t1-xfree86-nonfree", "ttf-kochi-gothic-naga10", "ttf-kochi-mincho-naga10", "ttf-larabie-deco", "ttf-larabie-straight", "ttf-larabie-uncommon", "ttf-mikachan", "ttf-xfree86-nonfree", "ttf-xfree86-nonfree-syriac", "xfonts-naga10",
 "msttcorefonts" ]
 fonts_multi = [ "mplayer-fonts", "ttf-liberation" ]
+package_titles = [ "Package name", "Category", "Section" ]
 
 def caps(stringy):
     return stringy[0:1].upper() + stringy[1:].lower()
@@ -109,6 +110,9 @@ def scan_system():
             pkgs = parse_list(commands.getoutput("./vrms -s"))
             return pkgs
 
+def no_nonfree():
+    return "You appear to have no non-free packages on your system. However, you may have added non-free software yourself, not using the package manager."
+
 class MainWindow:
     def delete_event(self, widget, event, data=None):
         return False
@@ -123,7 +127,7 @@ class MainWindow:
             self.liststore.append(i)
         if (len(packages) == 0):
             dialog = gtk.Dialog("My dialog", None, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_DELETE_EVENT))
-            label = gtk.Label("You appear to have no non-free packages on your system. However, you may have added non-free software yourself, not using the package manager.")
+            label = gtk.Label(no_nonfree())
             dialog.vbox.pack_start(label,True,True,10)
             label.show()
             dialog.run()
@@ -153,7 +157,7 @@ class MainWindow:
         self.textrenderer = gtk.CellRendererText()
         self.columns = []
         self.cells = []
-        self.titles = [ "Package name", "Category", "Section" ]
+        self.titles = package_titles
         for i in range (0,3):
             self.columns.append(gtk.TreeViewColumn(self.titles[i], self.textrenderer, text=i))
             self.tree.append_column(self.columns[i])
@@ -194,6 +198,12 @@ parser.add_option("-g", action="store_true", dest="graphics", help="Graphical (G
 (options, args) = parser.parse_args()
 if (options.graphics != None): graphics = options.graphics
 
+def add_spaces(string,width):
+    padding = width-len(string)
+    for i in range (0,padding):
+        string += " "
+    return string
+
 if (graphics):
     import pygtk
     pygtk.require('2.0')
@@ -203,7 +213,13 @@ if (graphics):
         main = MainWindow()
         main.main()
 else:
-    print system_summary()
-    print scan_system()
-    print "\nSorry, the command line interface is not let implemented beyond the above text; help would be appreciated."
+    print system_summary(),
+    packages = scan_system()
+    if (len(packages) == 0):
+        print no_nonfree()
+    else:
+        print add_spaces(package_titles[0],50)+add_spaces(package_titles[1],15)+add_spaces(package_titles[2],15)
+        for i in packages:
+            print add_spaces(i[0],50)+add_spaces(i[1],15)+add_spaces(i[2],15)
+    print ""
 

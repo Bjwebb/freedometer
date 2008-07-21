@@ -3,6 +3,7 @@
 import os
 import platform
 import sys
+import commands
 
 from optparse import OptionParser
 
@@ -34,10 +35,9 @@ def system_summary():
         dist = platform.dist()
         if (dist[0] == "debian"):
             packaging = "apt"
-            import debian_lsb
-            debdist = debian_lsb.get_distro_information()
-            distro = debdist['ID']
-            summary += distro+" "+caps(debdist['CODENAME'])+"\n\n"
+            name = commands.getoutput("lsb_release -cis").partition('\n')
+            distro = name[0]
+            summary += name[0]+" "+name[2]+"\n\n"
         else:
             packaging = "dunno"
             distro = caps(dist[0])
@@ -104,7 +104,6 @@ def parse_list(pkglist):
 def scan_system():
     global system
     if (system == "Linux"):
-        import commands
         global packaging
         if (packaging == "apt"):
             pkgs = parse_list(commands.getoutput("./vrms -s"))

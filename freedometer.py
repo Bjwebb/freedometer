@@ -58,8 +58,8 @@ def system_summary():
             summary += name[0]+" "+name[2]+"\n\n"
         else:
             packaging = "dunno"
-            distro = caps(dist[0])
-            summary += distro+" "+caps(dist[1])
+            distro = dist[0]
+            summary += distro+" "+caps(dist[1])+"\n\n"
         summary += "GNU/Linux is made up most of freedomware. However, many systems have several pieces of propreitary software installed (find out why this is bad).\n\n"
         if (distro == "Debian"):
             summary += "Debian has a good commitment to freedomware, but not quite as far as gnewsense.\n\n"
@@ -67,6 +67,8 @@ def system_summary():
             summary += "Ubuntu has a good commitment to freedomware, but not as much as others such as fedora, debian and gnewsense.\n\n"
         elif (distro == "gNewSense"):
             summary += "gNewSense contains only freedomware, but it is possible that propreitary software may have been installed on it.\n\n"
+	elif ("SuSE" in distro):
+	    summary += "SuSE has an okay commitment to freedomware, but has signed suspicous patent deals.\n\n"
         if (packaging == "dunno"):
             summary += "Unfortunately the scan functionality does not work for this GNU/Linux distriubtion yet. Please contact us so that we can add it."
         else:

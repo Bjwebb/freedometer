@@ -5,7 +5,7 @@ import platform
 import sys
 import commands
 import types
-import xml.etree.ElementTree as ET
+import xml.etree.cElementTree as ET
 
 class Freedometer:
     def __init__(self, gui=False):
@@ -101,9 +101,9 @@ class Freedometer:
             for j in i.findall("packagename"):
                 if (j.attrib["pacman"] == self.pacman and j.text in pkgnames):
                     alt = ""; reason = ""
-                    if i.find("alternative").__class__ != types.NoneType:
+                    if type(i.find("alternative")) != types.NoneType:
                         alt = self.getlang(i.find("alternative").findall("name"))
-                    if i.find("reason").__class__ != types.NoneType:
+                    if type(i.find("reason")) != types.NoneType:
                         reason = i.find("reason").text
                     pkginfo.append([self.getlang(i.findall("name")), reason, alt, self.getlang(i.findall("notes"))])
                     break

@@ -1,3 +1,4 @@
 <?xml version="1.0"?>
 <interface>
+    <osnametext>The Operating System you are running is:</osnametext>
 </interface>

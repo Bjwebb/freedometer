@@ -4,11 +4,13 @@ import os
 import platform
 import sys
 import commands
-import xml.dom.minidom
+import types
+import xml.etree.ElementTree as ET
 
 class Freedometer:
     def __init__(self):
-        self.xml = xml.dom.minidom.parse("interface.xml")
+        self.lang = "en"
+        itree = ET.parse("interface.xml") 
     
     def caps(self, stringy):
         return stringy[0:1].upper() + stringy[1:].lower()
@@ -67,19 +69,6 @@ class Freedometer:
             summary += "We can also help you install a free software Operating System, such as Ubuntu.\n\n"
         return summary
 
-    def free_exception(self, package):
-        exception = False
-        for i in cc_artwork:
-            if (i==package):
-                exception = True
-                break
-        return exception
-
-    def nodeloop(self, arr,comm):
-        for i in arr:
-            if (i.__class__ == xml.dom.minidom.Element):
-                exec comm
-
     def item_to_array(self, k):
         if (k.tagName == "name" and k.attributes.getNamedItem("lang").value == "en"):
             self.info[0] = k.childNodes[0].data
@@ -88,20 +77,27 @@ class Freedometer:
         if (k.tagName == "notes" and k.attributes.getNamedItem("lang").value == "en"):
             self.info[3] = k.childNodes[0].data
 
-    def check_item(self, item, j):
-        if (j.tagName == "packagename" and j.attributes.getNamedItem("distro").value == "debian"):
-            if j.childNodes[0].data in self.pkgnames:
-                self.info = ['','','','']
-                self.nodeloop(item,"self.item_to_array(i)")
-                self.pkginfo.append(self.info)
-                #break
+    def getlang(self, arr):
+        for i in arr:
+            if i.attrib["lang"] == self.lang:
+                return i.text
 
     def parse_list(self, pkglist):
-        self.pkginfo = []
-        self.pkgnames = pkglist.split()
-        dom = xml.dom.minidom.parse("packagelist.xml")
-        self.nodeloop(dom.getElementsByTagName("packagelist")[0].childNodes,"self.nodeloop(i.childNodes,\"self.check_item(arr,i)\")")
-        return self.pkginfo
+        pkginfo = []
+        pkgnames = pkglist.split()
+        pltree = ET.parse("packagelist.xml") 
+        plroot = pltree.getroot()
+        for i in plroot:
+            for j in i.findall("packagename"):
+                if (j.attrib["distro"] == "debian" and j.text in pkgnames):
+                    alt = ""; reason = ""
+                    if i.find("alternative").__class__ != types.NoneType:
+                        alt = self.getlang(i.find("alternative").findall("name"))
+                    if i.find("reason").__class__ != types.NoneType:
+                        reason = i.find("reason").text
+                    pkginfo.append([self.getlang(i.findall("name")), reason, alt, self.getlang(i.findall("notes"))])
+                    break
+        return pkginfo
 
     def scan_system(self):
         global system

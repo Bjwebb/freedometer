@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<packagelist>
+    <package id="flashplugin-nonfree">
+        <name lang="en">Flash Plugin</name>
+        <packagename distro="debian">flashplugin-nonfree</packagename>
+        <packagename distro="fedora">flash-nonfree-plugin</packagename>
+        <reason>full</reason>
+        <alternative>
+            <name lang="en">Gnash</name>
+            <packagename distro="debian">mozilla-plugin-gnash</packagename>
+        </alternative>
+        <notes lang="en">Test</notes>
+    </package>
+    <package id="emesene">
+        <name lang="en">Emesene</name>
+        <packagename distro="debian">emesene</packagename>
+        <reason>protocol</reason>
+        <notes lang="en">Test</notes>
+    </package>
+</packagelist>

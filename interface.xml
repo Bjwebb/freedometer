@@ -1,4 +1,35 @@
 <?xml version="1.0"?>
 <interface>
-    <osnametext>The Operating System you are running is:</osnametext>
+    <summary>
+        <osnametext lang="en">The Operating System you are running is: </osnametext>
+        <os name="gnulinux">
+            <summary lang="en">GNU/Linux is made up mostly of freedomware. However, many systems have several pieces of propreitary software installed (find out why this is bad).</summary>
+            <distro name="debian">
+                <summary lang="en">Debian has a good commitment to freedomware, but not quite as far as gnewsense.</summary>
+            </distro>
+            <distro name="ubuntu">
+                <summary lang="en">Ubuntu has a good commitment to freedomware, but not as much as others such as fedora, debian and gnewsense.</summary>
+            </distro>
+            <distro name="gnewsense">
+                <summary lang="en">gNewSense contains only freedomware, but it is possible that propreitary software may have been installed on it.</summary>
+            </distro>
+            <distro name="suse">
+                <summary lang="en">SuSE has an okay commitment to freedomware, but has signed suspicous patent deals.</summary>
+            </distro>
+            <scantext lang="en">Click the scan button below to scan for propreitary software that is installed on your system.</scantext>
+        </os>
+        <os name="windows">
+            <summary lang="en">Windows is a proprietary Operating System. However various pieces of freedomware can be installed.</summary>
+            <scantext lang="en">Click scan to find common pieces of free software, then our wizard will help you start using more.</scantext>
+            <migrationtext>We can also help you install a free software Operating System, such as Ubuntu.</migrationtext>
+        </os>
+    </summary>
+    <reasons>
+        <reason name="full" lang="en">Piece of propreiary software</reason>
+    </reasons>
+    <errors>
+        <noscan>Unfortunately the scan functionality does not work for this GNU/Linux distriubtion yet. Please contact us so that we can add it.</noscan>
+        <othunix>Unix based, but not GNU/Linux.
+Unfortunately we do not support this operating system yet. If you would like to help us, please tell us what system you are using.</othunix>
+    </errors>
 </interface>

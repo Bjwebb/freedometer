@@ -26,7 +26,7 @@ class MainWindow:
             dialog.destroy()
 
     def __init__(self):
-        self.free = freedometer.Freedometer()
+        self.free = freedometer.Freedometer(True)
         
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
         

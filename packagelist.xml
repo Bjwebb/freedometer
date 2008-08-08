@@ -2,8 +2,8 @@
 <packagelist>
     <package id="flashplugin-nonfree">
         <name lang="en">Flash Plugin</name>
-        <packagename distro="debian">flashplugin-nonfree</packagename>
-        <packagename distro="fedora">flash-nonfree-plugin</packagename>
+        <packagename pacman="dpkg">flashplugin-nonfree</packagename>
+        <packagename pacman="yum">flash-nonfree-plugin</packagename>
         <reason>full</reason>
         <alternative>
             <name lang="en">Gnash</name>
@@ -13,7 +13,7 @@
     </package>
     <package id="emesene">
         <name lang="en">Emesene</name>
-        <packagename distro="debian">emesene</packagename>
+        <packagename pacman="dpkg">emesene</packagename>
         <reason>protocol</reason>
         <notes lang="en">Test</notes>
     </package>
